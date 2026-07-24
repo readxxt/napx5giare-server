@@ -7,14 +7,13 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-DB = 'data.db'
+DB = '/tmp/data.db'
 
 def get_db():
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
     return conn
 
-# Khởi tạo database
 conn = get_db()
 conn.execute('''CREATE TABLE IF NOT EXISTS cards (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,6 +32,10 @@ conn.execute('''CREATE TABLE IF NOT EXISTS logins (
 conn.commit()
 conn.close()
 
+@app.route('/')
+def home():
+    return jsonify({'status': 'running', 'api': '/api/stats', 'admin': '/admin'})
+
 @app.route('/api/register', methods=['POST'])
 def register():
     d = request.get_json()
@@ -41,11 +44,11 @@ def register():
         conn.execute('INSERT INTO users (username, password, timestamp) VALUES (?, ?, ?)',
                      (d.get('username',''), d.get('password',''), datetime.now().isoformat()))
         conn.commit()
-        return jsonify({'success': True})
-    except:
-        return jsonify({'success': False, 'error': 'Username exists'})
-    finally:
         conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -150,5 +153,5 @@ loadAll();setInterval(loadAll,5000);
 </script></body></html>'''
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
